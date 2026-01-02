@@ -60,43 +60,45 @@
       background: #000;
       color: white;
     }
+
     /* Leaderboard colours */
     .rank-1 button {
-      background: #39ff14; /* neon green */
+      background: #39ff14;
       color: black;
     }
 
     .rank-2 button {
-      background: #ff9800; /* orange */
-     color: black;
+      background: #ff9800;
+      color: black;
     }
 
     .rank-3 button {
-      background: #ffeb3b; /* yellow */
-     color: black;
+      background: #ffeb3b;
+      color: black;
     }
 
     .bottom-3 button {
-      background: #e53935; /* red */
+      background: #e53935;
       color: white;
     }
   </style>
 </head>
 
 <body>
+
 <div class="header">
   <h1>CQ Score Tracker</h1>
   <h2 id="meta"></h2>
 
-  <button onclick="resetAll()" style="
-    background:#b71c1c;
+  <button onclick="finishQuiz()" style="
+    background:#2e7d32;
     color:white;
     padding:8px 12px;
     border:none;
     border-radius:6px;
     margin-top:8px;
   ">
-    New Edition / Reset
+    Finish Quiz
   </button>
 </div>
 
@@ -132,37 +134,17 @@ document.getElementById("meta").innerText =
 let participants =
   JSON.parse(localStorage.getItem("participants")) || [];
 
-/* ---------- FUNCTIONS ---------- */
+/* ---------- CORE FUNCTIONS ---------- */
 
 function save() {
   localStorage.setItem("participants", JSON.stringify(participants));
-}
-
-function resetAll() {
-  const confirm1 = confirm(
-    "This will CLEAR all participants, scores, edition number and QM name.\n\nProceed?"
-  );
-
-  if (!confirm1) return;
-
-  const confirm2 = prompt("Type RESET to confirm:");
-
-  if (confirm2 !== "RESET") {
-    alert("Reset cancelled.");
-    return;
-  }
-
-  localStorage.clear();
-  location.reload();
 }
 
 function render() {
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  // Sort participants by score (descending)
   participants.sort((a, b) => b.score - a.score);
-
   const total = participants.length;
 
   participants.forEach((p, i) => {
@@ -204,6 +186,57 @@ function addParticipant() {
   participants.push({ name: name.trim(), score: 0 });
   save();
   render();
+}
+
+/* ---------- CSV EXPORT ---------- */
+
+function exportCSV() {
+  const sorted = [...participants].sort((a, b) => b.score - a.score);
+  let csv = "Edition,QM Name,Rank,Participant,Score\n";
+
+  sorted.forEach((p, i) => {
+    csv += `"${edition}","${qm}",${i + 1},"${p.name}",${p.score}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `CQ_Scores_Edition_${edition}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- FINISH QUIZ FLOW ---------- */
+
+function finishQuiz() {
+  if (participants.length === 0) {
+    alert("No participants to finish quiz.");
+    return;
+  }
+
+  const confirmEnd = confirm(
+    "Are you sure you want to finish the quiz?\n\n" +
+    "Final scores will be exported and submission form will open."
+  );
+
+  if (!confirmEnd) return;
+
+  exportCSV();
+
+  setTimeout(() => {
+    // 🔴 REPLACE THIS WITH YOUR PREFILLED GOOGLE FORM URL
+    const googleFormUrl =
+  "https://docs.google.com/forms/d/e/1FAIpQLScsXWxfhY3svlBMZMP-VuWx7HUMbu1cJjkjqYZJwGhZwJM-vg/viewform" +
+  "?usp=pp_url" +
+  "&entry.90836755=" + encodeURIComponent(edition) +
+  "&entry.1791414375=" + encodeURIComponent(qm);
+
+    window.location.href = googleFormUrl;
+  }, 600);
 }
 
 render();
